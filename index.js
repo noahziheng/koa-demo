@@ -25,14 +25,11 @@ const parsePostBody = (ctx) => {
       })
       ctx.req.addListener("end",function(){
         let parsedData = null;
-        console.log('ctx.req.headers', ctx.req.headers);
         if (ctx.req.headers['content-type'] === 'application/json') {
           parsedData = JSON.parse(bodyData);
         } else if (ctx.req.headers['content-type'] === 'application/ x-www-form-urlencoded') {
           parsedData = qs.parse(decodeURIComponent(bodyData));
         }
-        console.log('parsedData', parsedData);
-        console.log('bodyData', bodyData);
         resolve(parsedData);
       })
     } catch ( err ) {
@@ -57,7 +54,6 @@ app.use(route('GET', '/api/todo', (ctx) => {
 app.use(route('POST', '/api/todo', async (ctx) => {
   // 新增 Todo 项
   const item = await parsePostBody(ctx);
-  console.log(ctx.request.body);
   ctx.body = dataModel.createItem(item);
 }));
 
