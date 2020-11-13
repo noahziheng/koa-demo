@@ -1,4 +1,5 @@
 const Koa = require('koa');
+const qs = require('querystring');
 const serve = require('koa-static');
 const dataModel = require('./data');
 
@@ -15,6 +16,31 @@ const route = (method, url, handlerFn) => {
   };
 };
 
+const parsePostBody = (ctx) => {
+  return new Promise((resolve, reject) => {
+    try {
+      let bodyData = "";
+      ctx.req.addListener('data', (data) => {
+        bodyData += data
+      })
+      ctx.req.addListener("end",function(){
+        let parsedData = null;
+        console.log('ctx.req.headers', ctx.req.headers);
+        if (ctx.req.headers['content-type'] === 'application/json') {
+          parsedData = JSON.parse(bodyData);
+        } else if (ctx.req.headers['content-type'] === 'application/ x-www-form-urlencoded') {
+          parsedData = qs.parse(decodeURIComponent(bodyData));
+        }
+        console.log('parsedData', parsedData);
+        console.log('bodyData', bodyData);
+        resolve(parsedData);
+      })
+    } catch ( err ) {
+      reject(err)
+    }
+  })
+}
+
 app.use(serve('./public'));
 
 app.use(route('GET', '/api/todos', (ctx) => {
@@ -28,10 +54,11 @@ app.use(route('GET', '/api/todo', (ctx) => {
   ctx.body = dataModel.getItem(i);
 }));
 
-app.use(route('POST', '/api/todo', (ctx) => {
+app.use(route('POST', '/api/todo', async (ctx) => {
   // 新增 Todo 项
-  const item = ctx.body;
-  ctx.body = dataModel.getItem(item);
+  const item = await parsePostBody(ctx);
+  console.log(ctx.request.body);
+  ctx.body = dataModel.createItem(item);
 }));
 
 app.use(route('PATCH', '/api/todo', (ctx) => {
