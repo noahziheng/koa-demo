@@ -38,6 +38,28 @@ const parsePostBody = (ctx) => {
   })
 }
 
+app.use(async (ctx, next) => {
+  if (!/^\/api/.test(ctx.req.url)) {
+    // 仅针对 API 封装 JSON 返回结构
+    return await next();
+  }
+  try {
+    await next();
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      data: ctx.body
+    };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      data: ctx.body,
+      errMsg: error.message
+    };
+  }
+});
+
 app.use(serve('./public'));
 
 app.use(route('GET', '/api/todos', (ctx) => {
@@ -57,14 +79,17 @@ app.use(route('POST', '/api/todo', async (ctx) => {
   ctx.body = dataModel.createItem(item);
 }));
 
-app.use(route('PATCH', '/api/todo', (ctx) => {
+app.use(route('PATCH', '/api/todo', async (ctx) => {
   // 更新 Todo 项
-  ctx.body = 'PATCH /api/todo';
+  const { i } = ctx.request.query;
+  const item = await parsePostBody(ctx);
+  ctx.body = dataModel.updateItem(i, item);
 }));
 
 app.use(route('DELETE', '/api/todo', (ctx) => {
   // 删除 Todo 项
-  ctx.body = 'DELETE /api/todo';
+  const { i } = ctx.request.query;
+  ctx.body = dataModel.removeItem(i);
 }));
 
 app.listen(3000);

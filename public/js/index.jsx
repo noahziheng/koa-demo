@@ -1,3 +1,30 @@
+const requestApi = (url, queryParams, data, method = 'GET') => {
+  let reqUrl = url;
+  const reqOptions = {
+    method
+  };
+  if (queryParams) {
+    const queryStr = Object.keys(queryParams).map((key) => `${key}=${queryParams[key]}`).join('&');
+    if (queryStr) {
+      reqUrl += `?${queryStr}`;
+    }
+  }
+  if (data) {
+    reqOptions.headers = {
+      'Content-Type': 'application/json'
+    };
+    reqOptions.body = JSON.stringify(data);
+  }
+  return fetch(reqUrl, reqOptions)
+    .then((res) => res.json())
+    .then((result) => {
+      if (!result || !result.success) {
+        throw new Error(result && result.errMsg);
+      }
+      return result.data;
+    });
+};
+
 const Icon = ({
   type,
   onClick
@@ -14,39 +41,50 @@ const Icon = ({
 
 const App = () => {
   const [inputVal, setInputVal] = React.useState('');
-  const [itemList, setItemList] = React.useState([
-    {
-      text: '测试Todo1',
-      completed: false
-    },
-    {
-      text: '测试Todo2',
-      completed: true
-    }
-  ]);
+  const [itemList, setItemList] = React.useState([]);
+
+  const fetchData = () => {
+    return requestApi('/api/todos').then((result) => {
+      setItemList(Array.isArray(result) ? result : []);
+    });
+  };
 
   const handleAdd = () => {
     if (!inputVal) {
       alert('Empty input!');
     }
-    const newList = itemList.concat([{
+    const newItem = {
       text: inputVal,
       completed: false
-    }]);
-    setItemList(newList);
-    setInputVal('');
+    };
+    return requestApi('/api/todo', null, newItem, 'POST')
+      .then(() => {
+        fetchData()
+      })
+      .then((res) => {
+        console.log(res);
+        setInputVal('');
+      });
   };
 
   const handleDelete = (i) => {
-    setItemList(itemList.filter((_item, j) => i !== j));
+    return requestApi('/api/todo', { i }, null, 'DELETE')
+      .then(() => fetchData());
   };
 
   const handleSwitchCompleted = (i) => {
-    setItemList(itemList.map((item, j) => i === j ? {
+    const item = itemList[i];
+    const newItem = {
       ...item,
       completed: !item.completed
-    } : item));
+    };
+    return requestApi('/api/todo', { i }, newItem, 'PATCH')
+      .then(() => fetchData());
   };
+
+  React.useEffect(() => {
+    fetchData();
+  }, []);
 
   return <div className="todoContainer">
     <span className="title">Simple Todo</span>

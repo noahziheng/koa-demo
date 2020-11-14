@@ -37,6 +37,7 @@
   background-color: #FFFFFF;
   border: none;
   box-shadow: 0px 0px 50px -24px #000000;
+  padding: 0 12px;
 }
 
 .todoContainer > .inputView > button {
